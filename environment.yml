@@ -6,4 +6,4 @@ dependencies:
     - -r requirements/dev.txt
     - -e .
 variables: 
-  TRANSFORMERS_CACHE: /media/data/transformers
+  TRANSFORMERS_CACHE: $TRANSFORMERS_CACHE

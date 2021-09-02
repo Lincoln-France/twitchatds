@@ -104,6 +104,10 @@ setup-conda-env:
 # PROJECT RECIPES
 #
 
+# local
+export_env:
+	export TRANSFORMERS_CACHE=/media/data/transformers
+
 train_mlm:
 	twitchatds train_mlm \
 		--data_file data/raw/jeanmassietaccropolis.pkl \
