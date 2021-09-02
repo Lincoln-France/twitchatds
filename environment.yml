@@ -5,5 +5,3 @@ dependencies:
   - pip:
     - -r requirements/dev.txt
     - -e .
-variables: 
-  TRANSFORMERS_CACHE: $TRANSFORMERS_CACHE
