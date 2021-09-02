@@ -78,12 +78,12 @@ def read_twitchat_csv(csv_file: str) -> pd.DataFrame:
     return dataframe
 
 
-def _group_messages_by_length(x: pd.Series, max_length: int) -> List[int]:
+def _group_messages_by_length(x: pd.Series, max_length: int, offset: int = 0) -> List[int]:
     group_index = 0
     sum_ = 0
     group = []
     for val in x:
-        if sum_ + val > max_length:
+        if sum_ + val + offset > max_length:
             group_index += 1
             sum_ = 0
         sum_ += val
@@ -152,7 +152,7 @@ def prepare_data_for_mlm(pd_data: pd.DataFrame, tokenizer: Tokenizer, max_length
 
     pd_data['message_clean'] = pd_data.message.apply(replace_mention).apply(replace_url)
     pd_data['time_window'] = pd_data.groupby([pd.Grouper(key='channel'), pd.Grouper(key='published_datetime', freq=time_window_freq, origin='start', dropna=True)]).ngroup()
-    pd_data['message_length_window'] = pd_data.groupby('time_window')['message_length'].transform(lambda x: _group_messages_by_length(x, max_length))
+    pd_data['message_length_window'] = pd_data.groupby('time_window')['message_length'].transform(lambda x: _group_messages_by_length(x, max_length, offset=2))
 
     pd_data = pd_data.groupby([pd.Grouper(key='channel'), pd.Grouper(key='published_datetime', freq=time_window_freq, origin='start', dropna=True), pd.Grouper(key='message_length_window')]).agg(
         message_clean=('message_clean', ' '.join),
