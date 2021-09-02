@@ -132,10 +132,10 @@ train_mlm_gpu:
 		--data_file ~/cloudfiles/code/Users/assets/data/raw/jeanmassietaccropolis.pkl \
 		--tokenizer ~/cloudfiles/code/Users/assets/models/tokenizers/jeanmassietaccropolis.json \
 		--output ~/cloudfiles/code/Users/assets/models/mobilebert/mlm \
-		--num_train_epochs 2 \
+		--num_train_epochs 3 \
 		--per_device_train_batch_size 16 \
 		--evaluation_strategy steps \
-		--eval_steps 100 \
+		--eval_steps 500 \
 		--logging_strategy steps \
 		--logging_steps 20 \
 		--save_strategy steps \
