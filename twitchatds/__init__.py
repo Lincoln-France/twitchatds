@@ -152,12 +152,16 @@ def prepare_data_for_mlm(pd_data: pd.DataFrame, tokenizer: Tokenizer, max_length
 
     pd_data['message_clean'] = pd_data.message.apply(replace_mention).apply(replace_url)
     pd_data['time_window'] = pd_data.groupby([pd.Grouper(key='channel'), pd.Grouper(key='published_datetime', freq=time_window_freq, origin='start', dropna=True)]).ngroup()
-    pd_data['message_length_window'] = pd_data.groupby('time_window')['message_length'].transform(lambda x: _group_messages_by_length(x, max_length, offset=2))
+    encoded_batch = tokenizer.encode_batch(pd_data.message_clean)
+    pd_data['input_ids'] = [e.ids for e in encoded_batch]
+    pd_data['message_tokenized_length'] = [len(e) for e in encoded_batch]
+    pd_data['message_tokenized_length_window'] = pd_data.groupby('time_window')['message_tokenized_length'].transform(lambda x: _group_messages_by_length(x, max_length, offset=0))
 
-    pd_data = pd_data.groupby([pd.Grouper(key='channel'), pd.Grouper(key='published_datetime', freq=time_window_freq, origin='start', dropna=True), pd.Grouper(key='message_length_window')]).agg(
+    pd_data = pd_data.groupby([pd.Grouper(key='channel'), pd.Grouper(key='published_datetime', freq=time_window_freq, origin='start', dropna=True), pd.Grouper(key='message_tokenized_length_window')]).agg(
         message_clean=('message_clean', ' '.join),
-        input_ids=('message_clean', lambda msgs: _tokenizer_messages(msgs, tokenizer=tokenizer)),
+        input_ids=('input_ids', lambda input_ids_list: list(chain.from_iterable(input_ids_list))),
         message_length=('message_length', 'sum'),
+        message_tokenized_length=('message_tokenized_length', 'sum'),
         count_url=('count_url', 'sum'),
         count_messages=('username', 'count')
     ).reset_index()
