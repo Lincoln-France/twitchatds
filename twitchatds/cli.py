@@ -142,17 +142,7 @@ def train_mlm_task(args):
     dataset_args, training_args = parser.parse_args_into_dataclasses(args)
 
     tokenizer = Tokenizer.from_file(dataset_args.tokenizer_file)
-
-    tokenizer.enable_padding(pad_token='<pad>', pad_id=tokenizer.token_to_id('<pad>'))
     tokenizer.enable_truncation(max_length=dataset_args.max_length)
-
-    fast_tokenizer = PreTrainedTokenizerFast(
-        tokenizer_object=tokenizer,
-        sep_token='<sep>',
-        pad_token='<pad>',
-        cls_token='<cls>',
-        mask_token='<mask>'
-    )
 
     pd_data = prepare_data_for_mlm(
         pd_data=pd.read_pickle(dataset_args.data_file),
@@ -161,6 +151,15 @@ def train_mlm_task(args):
         mention_filter=dataset_args.mention_filter,
         count_url_filter=dataset_args.count_url_filter,
         time_window_freq=dataset_args.time_window_freq
+    )
+
+    tokenizer.enable_padding(pad_token='<pad>', pad_id=tokenizer.token_to_id('<pad>'))
+    fast_tokenizer = PreTrainedTokenizerFast(
+        tokenizer_object=tokenizer,
+        sep_token='<sep>',
+        pad_token='<pad>',
+        cls_token='<cls>',
+        mask_token='<mask>'
     )
 
     ds_data = Dataset.from_pandas(pd_data[['input_ids']])
