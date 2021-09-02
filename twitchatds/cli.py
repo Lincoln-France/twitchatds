@@ -155,7 +155,7 @@ def train_mlm_task(args):
     )
 
     pd_data = prepare_data_for_mlm(
-        pd_data=pd.read_pickle(dataset_args.data_file).iloc[:2000],
+        pd_data=pd.read_pickle(dataset_args.data_file),
         tokenizer=tokenizer,
         max_length=dataset_args.max_length,
         mention_filter=dataset_args.mention_filter,
@@ -182,7 +182,7 @@ def train_mlm_task(args):
     trainer = Trainer(
         model=mobilebert_model,
         args=training_args,
-        train_dataset=ds_data["train"].train_test_split(train_size=0.3)['train'],
+        train_dataset=ds_data["train"],
         eval_dataset=ds_data["test"],
         data_collator=data_collator
     )

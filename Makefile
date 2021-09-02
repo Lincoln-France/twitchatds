@@ -114,8 +114,11 @@ train_mlm:
 		--tokenizer_file models/tokenizers/jeanmassietaccropolis.json \
 		--output_dir models/mobilebert/mlm/ \
 		--num_train_epochs 20 \
+		--per_device_train_batch_size 32 \
 		--evaluation_strategy epoch \
 		--logging_strategy epoch \
 		--log_level debug \
 		--disable_tqdm 1 \
+		--save_strategy epoch \
+		--save_total_limit 5 \
 		--do_train 

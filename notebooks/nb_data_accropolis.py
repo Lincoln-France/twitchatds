@@ -503,3 +503,39 @@ fill_mask = pipeline(
 fill_mask("Comment va <mask>")
 
 # %%
+from twitchatds import prepare_data_for_mlm
+from tokenizers import Tokenizer
+import pandas as pd
+
+# %%
+tokenizer = Tokenizer.from_file('../models/tokenizers/jeanmassietaccropolis.json')
+
+tokenizer.enable_padding(pad_token='<pad>', pad_id=tokenizer.token_to_id('<pad>'))
+# tokenizer.enable_truncation(max_length=)
+
+# %%
+pd_data_tmp = pd.read_pickle('../data/raw/jeanmassietaccropolis.pkl')
+
+# %%
+pd_data_tmp.shape
+
+# %%
+pd_data = prepare_data_for_mlm(
+    pd_data=pd_data_tmp,
+    tokenizer=tokenizer,
+    time_window_freq='10s'
+)
+
+# %%
+pd_data.message_length.describe()
+
+# %%
+pd_data.message_length.quantile(0.9)
+
+# %%
+pd_data.count_messages.describe()
+
+# %%
+pd_data[pd_data.count_messages > 100]
+
+# %%
