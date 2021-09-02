@@ -1,0 +1,21 @@
+
+version: "3"
+services:
+  core:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        PUID: 1000
+        PGID: 1000
+        WORKDIR: /package
+        VERSION: 0.1.0
+    image: twitchatds-core:0.1.0
+    container_name: twitchatds-core
+    user: lincoln
+    volumes:
+      - "${PWD}:/package"
+    env_file:
+      - .env
+    networks:
+      - default

@@ -1,0 +1,6 @@
+tcd==3.2.1
+sentencepiece==0.1.96
+transformers
+torch==1.9.0
+plotnine
+tensorboard==2.6.0

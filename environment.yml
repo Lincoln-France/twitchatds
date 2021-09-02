@@ -1,0 +1,9 @@
+name: twitchat-ds
+dependencies:
+  - python==3.9
+  - pip==21.2.4
+  - pip:
+    - -r requirements/dev.txt
+    - -e .
+variables: 
+  TRANSFORMERS_CACHE: /media/data/transformers
