@@ -190,7 +190,10 @@ def train_mlm_task(args):
     trainer.add_callback(FileCallback(training_args.output_dir))
 
     if training_args.do_train:
-        trainer.train()
+        try:
+            trainer.train(training_args.resume_from_checkpoint)
+        except KeyboardInterrupt:
+            logger.info("KeyboardInterrup: saving model anyway")
 
         # saving
         fast_tokenizer.save_pretrained(training_args.output_dir)

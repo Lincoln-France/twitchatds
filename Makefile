@@ -113,12 +113,35 @@ train_mlm:
 		--data_file data/raw/jeanmassietaccropolis.pkl \
 		--tokenizer_file models/tokenizers/jeanmassietaccropolis.json \
 		--output_dir models/mobilebert/mlm/ \
-		--num_train_epochs 20 \
-		--per_device_train_batch_size 32 \
-		--evaluation_strategy epoch \
-		--logging_strategy epoch \
+		--num_train_epochs 2 \
+		--per_device_train_batch_size 16 \
+		--evaluation_strategy steps \
+		--eval_steps 40 \
+		--logging_strategy steps \
+		--logging_steps 20 \
+		--save_strategy steps \
+		--save_steps 100 \
+		--save_total_limit 10 \
 		--log_level debug \
-		--disable_tqdm 1 \
-		--save_strategy epoch \
-		--save_total_limit 5 \
+		--time_window_freq 10s \
+		--max_length 512\
+		--do_train 
+
+train_mlm_gpu:
+	twitchatds train_mlm \
+		--data_file ~/cloudfiles/code/Users/assets/data/raw/jeanmassietaccropolis.pkl \
+		--tokenizer ~/cloudfiles/code/Users/assets/models/tokenizers/jeanmassietaccropolis.json \
+		--output ~/cloudfiles/code/Users/assets/models/mobilebert/mlm \
+		--num_train_epochs 2 \
+		--per_device_train_batch_size 16 \
+		--evaluation_strategy steps \
+		--eval_steps 40 \
+		--logging_strategy steps \
+		--logging_steps 20 \
+		--save_strategy steps \
+		--save_steps 100 \
+		--save_total_limit 10 \
+		--log_level debug \
+		--time_window_freq 10s \
+		--max_length 512\
 		--do_train 
