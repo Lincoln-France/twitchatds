@@ -6,7 +6,9 @@ import logging
 import logging.handlers
 import logging.config
 import pandas as pd
-from twitchatds import prepare_data, prepare_data_for_tokenization, prepare_data_for_mlm, train_tokenizer, build_special_tokens
+from twitchatds import (prepare_data, prepare_data_for_tokenization,
+                        prepare_data_for_mlm, train_tokenizer,
+                        build_special_tokens, train_mlm)
 
 logger = logging.getLogger(__name__)
 
@@ -123,14 +125,11 @@ def tokenize_task(file: str, add_special_tokens: bool, inputs: List[str]):
 
 
 def train_mlm_task(args):
-    # to do: decouper la tâche et la déplacer dans __init__
-    from transformers import (HfArgumentParser, TrainingArguments, Trainer, PreTrainedTokenizerFast,
-                              MobileBertConfig, MobileBertForMaskedLM, DataCollatorForLanguageModeling)
-    from transformers import PrinterCallback
+    from transformers import HfArgumentParser, TrainingArguments, PreTrainedTokenizerFast
     import transformers
     from datasets import Dataset
     from tokenizers import Tokenizer
-    from twitchatds.hf_utils import DatasetArguments, FileCallback
+    from twitchatds.hf_utils import DatasetArguments
 
     transformers.logging.disable_default_handler()
     parser = HfArgumentParser((DatasetArguments, TrainingArguments))
@@ -153,7 +152,7 @@ def train_mlm_task(args):
         time_window_freq=dataset_args.time_window_freq
     )
 
-    tokenizer.enable_padding(pad_token='<pad>', pad_id=tokenizer.token_to_id('<pad>'))
+    # tokenizer.enable_padding(pad_token='<pad>', pad_id=tokenizer.token_to_id('<pad>'))
     fast_tokenizer = PreTrainedTokenizerFast(
         tokenizer_object=tokenizer,
         sep_token='<sep>',
@@ -166,42 +165,9 @@ def train_mlm_task(args):
     ds_data = ds_data.shuffle(seed=3352)
     ds_data = ds_data.train_test_split(test_size=0.2, seed=9873)
 
-    mobilebert_config = MobileBertConfig(
-        vocab_size=tokenizer.get_vocab_size(),
-        sep_token_id=tokenizer.token_to_id('<sep>'),
-        pad_token_id=tokenizer.token_to_id('<pad>'),
-        cls_token_id=tokenizer.token_to_id('<cls>'),
-        hidden_size=128
-    )
+    trainer = train_mlm(ds_data, fast_tokenizer, training_args)
 
-    mobilebert_model = MobileBertForMaskedLM(config=mobilebert_config)
-
-    data_collator = DataCollatorForLanguageModeling(tokenizer=fast_tokenizer, mlm_probability=0.15)
-
-    trainer = Trainer(
-        model=mobilebert_model,
-        args=training_args,
-        train_dataset=ds_data["train"],
-        eval_dataset=ds_data["test"],
-        data_collator=data_collator
-    )
-
-    trainer.remove_callback(PrinterCallback)
-    trainer.add_callback(FileCallback(training_args.output_dir))
-
-    if training_args.do_train:
-        try:
-            trainer.train(training_args.resume_from_checkpoint)
-        except KeyboardInterrupt:
-            logger.info("KeyboardInterrup: saving model anyway")
-
-        # saving
-        fast_tokenizer.save_pretrained(training_args.output_dir)
-        trainer.save_model(output_dir=training_args.output_dir)
-        if trainer.is_world_process_zero():
-            trainer.save_state()
-
-    return
+    return trainer
 
 
 if __name__ == "__main__":

@@ -7,7 +7,14 @@ import logging
 from typing import List
 from pathlib import Path
 from itertools import chain
-
+import transformers
+from transformers.tokenization_utils import PreTrainedTokenizer
+from transformers.training_args import TrainingArguments
+from transformers.utils.dummy_tokenizers_objects import PreTrainedTokenizerFast
+from transformers import (MobileBertConfig, MobileBertForMaskedLM,
+                          DataCollatorForLanguageModeling, Trainer,
+                          PrinterCallback)
+from twitchatds.hf_utils import DatasetArguments, FileCallback
 import twitch
 import tcd
 from tcd.settings import Settings
@@ -16,6 +23,8 @@ import pandas as pd
 from tokenizers import Tokenizer
 from tokenizers.implementations import SentencePieceUnigramTokenizer
 from tokenizers.processors import TemplateProcessing
+
+from datasets import Dataset
 
 __author__ = """Lincoln"""
 __email__ = 'francois.vieille@mel.lincoln.fr'
@@ -201,5 +210,41 @@ def train_tokenizer(pd_data: pd.DataFrame, vocab_size: int, special_tokens: List
     return tokenizer
 
 
-def train_mlm():
-    pass
+def train_mlm(ds_data: Dataset, tokenizer: PreTrainedTokenizerFast, training_args: TrainingArguments) -> transformers.Trainer:
+
+    mobilebert_config = MobileBertConfig(
+        vocab_size=tokenizer.vocab_size,
+        sep_token_id=tokenizer.sep_token,
+        pad_token_id=tokenizer.pad_token,
+        cls_token_id=tokenizer.cls_token,
+        hidden_size=128
+    )
+
+    mobilebert_model = MobileBertForMaskedLM(config=mobilebert_config)
+
+    data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm_probability=0.15)
+
+    trainer = Trainer(
+        model=mobilebert_model,
+        args=training_args,
+        train_dataset=ds_data["train"],
+        eval_dataset=ds_data["test"],
+        data_collator=data_collator
+    )
+
+    trainer.remove_callback(PrinterCallback)
+    trainer.add_callback(FileCallback(training_args.output_dir))
+
+    if training_args.do_train:
+        try:
+            trainer.train(training_args.resume_from_checkpoint)
+        except KeyboardInterrupt:
+            logger.info("KeyboardInterrup: saving model anyway")
+
+        # saving
+        tokenizer.save_pretrained(training_args.output_dir)
+        trainer.save_model(output_dir=training_args.output_dir)
+        if trainer.is_world_process_zero():
+            trainer.save_state()
+
+    return trainer
