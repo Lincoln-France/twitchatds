@@ -108,6 +108,12 @@ setup-conda-env:
 export_env:
 	export TRANSFORMERS_CACHE=/media/data/transformers
 
+prepare_data:
+	twitchatds data \
+		--csv-path /media/data/twitchat-data \
+		--channel zerator squeezie samueletienne ponce mistermv jeanmassietaccropolis domingo blitzstream antoinedaniellive \
+		--out-file /media/data/Projets/twitchat-ds/data/raw/zerator_squeezie_samueletienne_ponce_mistermv_jeanmassietaccropolis_domingo_blitzstream_antoinedaniellive.pkl
+
 train_mlm:
 	twitchatds train_mlm \
 		--data_file data/raw/jeanmassietaccropolis.pkl \

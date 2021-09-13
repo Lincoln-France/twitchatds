@@ -40,6 +40,8 @@ _REGEX_MENTION = '@\S+' # noqa
 _REGEX_URL = '(http|ftp|https):\/\/([\w\-_]+(?:(?:\.[\w\-_]+)+))([\w\-\.,@?^=%&:/~\+#]*[\w\-\@?^=%&/~\+#])?' # noqa
 Settings(str(Path.home()) + '/.config/tcd/settings.json', reference_filepath=f'{os.path.dirname(os.path.abspath(tcd.__file__))}/settings.reference.json')
 
+# to do: class data
+
 
 def global_emotes() -> List:
     helix_api = twitch.Helix(client_id=Settings().config['client_id'], client_secret=Settings().config['client_secret'], use_cache=True)
@@ -117,7 +119,7 @@ def prepare_data(csv_path: str, broadcasters: List[str]) -> pd.DataFrame:
             logger.debug(f"Reading {filename} ...")
             pd_datas.append(read_twitchat_csv(filename))
         except Exception as err:
-            logger.log(err)
+            logger.error(err)
 
     pd_datas_filter = [d for d in pd_datas if d.published_datetime.dtype == "datetime64[ns]"]
     pd_datas_filter = [d[~d.published_datetime.isnull()] for d in pd_datas_filter]
@@ -176,6 +178,25 @@ def prepare_data_for_mlm(pd_data: pd.DataFrame, tokenizer: Tokenizer, max_length
     ).reset_index()
 
     return pd_data
+
+
+def prepare_data_for_stats(pd_data: pd.DataFrame, tokenizer: Tokenizer, max_length: int = 500, mention_filter: int = 3, count_url_filter: int = 3, time_window_freq: str = '5s') -> pd.DataFrame:
+    pd_data = pd_data[pd_data.count_mention <= mention_filter]
+    pd_data = pd_data[pd_data.count_url <= count_url_filter]
+
+    pd_data['message_clean'] = pd_data.message.apply(replace_mention).apply(replace_url)
+    pd_data['time_window'] = pd_data.groupby([pd.Grouper(key='channel'), pd.Grouper(key='published_datetime', freq=time_window_freq, origin='start', dropna=True)]).ngroup()
+    encoded_batch = tokenizer.encode_batch(pd_data.message_clean)
+    pd_data['input_ids'] = [e.ids for e in encoded_batch]
+    pd_data['tokens'] = [e.tokens for e in encoded_batch]
+    pd_data['message_tokenized_length'] = [len(e) for e in encoded_batch]
+    pd_data['message_tokenized_length_window'] = pd_data.groupby('time_window')['message_tokenized_length'].transform(lambda x: _group_messages_by_length(x, max_length, offset=0))
+
+    return pd_data
+
+
+def tokens_by_channel(pd_stats: pd.DataFrame):
+    return pd_stats[['channel', 'input_ids', 'tokens']].explode(['input_ids', 'tokens']).groupby(['channel', 'input_ids', 'tokens']).size().to_frame('size').reset_index().sort_values('size', ascending=False)
 
 
 def build_special_tokens() -> List[str]:
