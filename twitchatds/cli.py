@@ -1,12 +1,14 @@
 """Console script for twitchatds."""
 from typing import List
 import sys
+import os
 import argparse
 import logging
 import logging.handlers
 import logging.config
 import pandas as pd
 from twitchatds import (prepare_data, prepare_data_for_tokenization,
+                        prepare_data_for_electra_training,
                         prepare_data_for_mlm, train_tokenizer,
                         build_special_tokens, train_mlm)
 
@@ -77,6 +79,15 @@ def main():
     parser_trainer_tokenizer.add_argument('--count-url-filter', type=int, default=3)
     parser_trainer_tokenizer.set_defaults(func=train_tokenizer_task)
 
+    parser_electra_data = subparser.add_parser('electra_data')
+    parser_electra_data.add_argument('-f', '--in-file', type=str, required=True)
+    parser_electra_data.add_argument('-d', '--out-directory', type=str, required=True)
+    parser_electra_data.add_argument('-l', '--max-length', type=int, default=500)
+    parser_electra_data.add_argument('--time-window-freq', type=str, default='5s')
+    parser_electra_data.add_argument('--mention-filter', type=int, default=3)
+    parser_electra_data.add_argument('--count-url-filter', type=int, default=3)
+    parser_electra_data.set_defaults(func=export_electra_data)
+
     parser_tokenize = subparser.add_parser('tokenize')
     parser_tokenize.add_argument('-f', '--file', type=str, required=True)
     parser_tokenize.add_argument('--add_special_tokens', action='store_true')
@@ -122,6 +133,27 @@ def tokenize_task(file: str, add_special_tokens: bool, inputs: List[str]):
     for input, toks in zip(inputs, tokens_to_print):
         print(f'{input}: {toks}')
     return tokens_to_print
+
+
+def export_electra_data(in_file: str, out_directory: str, max_length: int, time_window_freq: str, mention_filter: int, count_url_filter: int):
+    pd_data = prepare_data_for_electra_training(
+        pd_data=pd.read_pickle(in_file),
+        max_length=max_length,
+        mention_filter=mention_filter,
+        count_url_filter=count_url_filter,
+        time_window_freq=time_window_freq
+    )
+
+    pd_data_channel = pd_data.groupby('channel')
+
+    for name, group in pd_data_channel:
+        filename = os.path.join(out_directory, f'raw_{name}.csv')
+        open(filename, 'w').close()
+        with open(filename, 'a') as f:
+            for doc_name, doc in group.groupby('time_window'):
+                f.write('\n'.join(doc['message_clean']))
+                f.write('\n\n')
+    pass
 
 
 def train_mlm_task(args):

@@ -114,6 +114,27 @@ prepare_data:
 		--channel zerator squeezie samueletienne ponce mistermv jeanmassietaccropolis domingo blitzstream antoinedaniellive \
 		--out-file /media/data/Projets/twitchat-ds/data/raw/zerator_squeezie_samueletienne_ponce_mistermv_jeanmassietaccropolis_domingo_blitzstream_antoinedaniellive.pkl
 
+train_tokenizer:
+	twitchatds train_tokenizer \
+		--in-file /media/data/Projets/twitchat-ds/data/raw/zerator_squeezie_samueletienne_ponce_mistermv_jeanmassietaccropolis_domingo_blitzstream_antoinedaniellive.pkl \
+		--out-file /media/data/Projets/twitchat-ds/models/tokenizers/all_streamers.json \
+		--vocab-size 16000 \
+		--max-length 500
+
+create_electra_data:
+	twitchatds electra_data \
+		--in-file /media/data/Projets/twitchat-ds/data/raw/zerator_squeezie_samueletienne_ponce_mistermv_jeanmassietaccropolis_domingo_blitzstream_antoinedaniellive.pkl \
+		--out-directory data/raw/electra \
+		-l 170 \
+		--time-window-freq 60s \
+
+convert_convbert:
+	python -m transformers.models.convbert.convert_convbert_original_tf1_checkpoint_to_pytorch_and_tf2 \
+		--tf_checkpoint_path /mnt/twitchat/models/convbert-small-bckp/ \
+		--convbert_config_file /media/data/Projets/twitchat-ds/twitchatds/convbert_small_config.json \
+		--pytorch_dump_path /mnt/twitchat/models/convbert-small-hf/
+
+# old
 train_mlm:
 	twitchatds train_mlm \
 		--data_file data/raw/jeanmassietaccropolis.pkl \
