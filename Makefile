@@ -141,6 +141,8 @@ train_mlm:
 		--data_file data/raw/jeanmassietaccropolis.pkl \
 		--tokenizer_file models/tokenizers/all_streamers.json \
 		--output_dir models/mlm/convbert-small \
+		--lr_scheduler_type constant \
+		--learning_rate 5e-4 \
 		--num_train_epochs 2 \
 		--per_device_train_batch_size 16 \
 		--evaluation_strategy steps \
@@ -158,19 +160,23 @@ train_mlm:
 
 train_mlm_gpu:
 	twitchatds train_mlm \
+		--model_name_or_path ~/cloudfiles/code/Users/assets/models/convbert-small-hf/ \
 		--data_file ~/cloudfiles/code/Users/assets/data/raw/zerator_squeezie_samueletienne_ponce_mistermv_jeanmassietaccropolis_domingo_blitzstream_antoinedaniellive.pkl \
 		--tokenizer ~/cloudfiles/code/Users/assets/models/tokenizers/all_streamers.json \
-		--output ~/cloudfiles/code/Users/assets/models/convbert-small-hf-mlm/ \
+		--output_dir ~/cloudfiles/code/Users/assets/models/convbert-small-hf-mlm/ \
+		--lr_scheduler_type constant \
+		--learning_rate 5e-4 \
 		--num_train_epochs 1 \
 		--per_device_train_batch_size 16 \
 		--evaluation_strategy steps \
-		--eval_steps 500 \
+		--eval_steps 2000 \
+		--per_gpu_eval_batch_size 16 \
 		--logging_strategy steps \
 		--logging_steps 20 \
 		--save_strategy steps \
-		--save_steps 500 \
+		--save_steps 2000 \
 		--save_total_limit 10 \
 		--log_level debug \
 		--time_window_freq 10s \
 		--max_length 512 \
-		--do_train 
+		--do_train

@@ -195,7 +195,7 @@ def train_mlm_task(args):
 
     ds_data = Dataset.from_pandas(pd_data[['input_ids']])
     ds_data = ds_data.shuffle(seed=3352)
-    ds_data = ds_data.train_test_split(test_size=0.2, seed=9873)
+    ds_data = ds_data.train_test_split(test_size=0.1, seed=9873)
 
     trainer = train_mlm(ds_data, fast_tokenizer, model_args, training_args)
 
