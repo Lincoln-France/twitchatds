@@ -7,14 +7,15 @@ import logging
 from typing import List
 from pathlib import Path
 from itertools import chain
+from datasets.features import encode_nested_example
 import transformers
 from transformers.tokenization_utils import PreTrainedTokenizer
 from transformers.training_args import TrainingArguments
 from transformers.utils.dummy_tokenizers_objects import PreTrainedTokenizerFast
-from transformers import (MobileBertConfig, MobileBertForMaskedLM,
+from transformers import (ConvBertConfig, ConvBertForMaskedLM,
                           DataCollatorForLanguageModeling, Trainer,
                           PrinterCallback)
-from twitchatds.hf_utils import DatasetArguments, FileCallback
+from twitchatds.hf_utils import DatasetArguments, FileCallback, ModelArguments
 import twitch
 import tcd
 from tcd.settings import Settings
@@ -102,9 +103,12 @@ def _group_messages_by_length(x: pd.Series, max_length: int, offset: int = 0) ->
     return group
 
 
-def _tokenizer_messages(messages: pd.Series, tokenizer: Tokenizer) -> pd.Series:
-    input_ids_list = [b.ids for b in tokenizer.encode_batch(messages.tolist())]
-    return list(chain.from_iterable(input_ids_list))
+def _tokenizer_messages(row, tokenizer: Tokenizer) -> pd.DataFrame:
+    e = tokenizer.encode(row['message_clean'])
+    row['input_ids'] = e.ids
+    row['tokens'] = e.tokens
+    row['message_tokenized_length'] = len(e)
+    return row
 
 
 def prepare_data(csv_path: str, broadcasters: List[str]) -> pd.DataFrame:
@@ -186,11 +190,29 @@ def prepare_data_for_stats(pd_data: pd.DataFrame, tokenizer: Tokenizer, max_leng
 
     pd_data['message_clean'] = pd_data.message.apply(replace_mention).apply(replace_url)
     pd_data['time_window'] = pd_data.groupby([pd.Grouper(key='channel'), pd.Grouper(key='published_datetime', freq=time_window_freq, origin='start', dropna=True)]).ngroup()
+
+    logger.info('Start tokenizing...')
     encoded_batch = tokenizer.encode_batch(pd_data.message_clean)
+    logger.info('End of tokenizing.')
+
     pd_data['input_ids'] = [e.ids for e in encoded_batch]
     pd_data['tokens'] = [e.tokens for e in encoded_batch]
     pd_data['message_tokenized_length'] = [len(e) for e in encoded_batch]
+    # pd_data.apply(lambda r: _tokenizer_messages(r, tokenizer=tokenizer), axis=1)
     pd_data['message_tokenized_length_window'] = pd_data.groupby('time_window')['message_tokenized_length'].transform(lambda x: _group_messages_by_length(x, max_length, offset=0))
+
+    return pd_data
+
+
+def prepare_data_for_electra_training(pd_data: pd.DataFrame, max_length: int = 500, mention_filter: int = 3, count_url_filter: int = 3, time_window_freq: str = '5s') -> pd.DataFrame:
+    pd_data = pd_data[pd_data.count_mention <= mention_filter]
+    pd_data = pd_data[pd_data.count_url <= count_url_filter]
+
+    pd_data['message_clean'] = pd_data.message.apply(replace_mention).apply(replace_url)
+    pd_data['time_window'] = pd_data.groupby([pd.Grouper(key='channel'), pd.Grouper(key='published_datetime', freq=time_window_freq, origin='start', dropna=True)]).ngroup()
+    pd_data['message_group_length'] = pd_data.groupby('time_window')['message_length'].transform('sum')
+
+    pd_data = pd_data[pd_data['message_group_length'] >= max_length]
 
     return pd_data
 
@@ -231,22 +253,17 @@ def train_tokenizer(pd_data: pd.DataFrame, vocab_size: int, special_tokens: List
     return tokenizer
 
 
-def train_mlm(ds_data: Dataset, tokenizer: PreTrainedTokenizerFast, training_args: TrainingArguments) -> transformers.Trainer:
+def train_mlm(ds_data: Dataset, tokenizer: PreTrainedTokenizerFast, model_args: ModelArguments, training_args: TrainingArguments) -> transformers.Trainer:
 
-    mobilebert_config = MobileBertConfig(
-        vocab_size=tokenizer.vocab_size,
-        sep_token_id=tokenizer.sep_token,
-        pad_token_id=tokenizer.pad_token,
-        cls_token_id=tokenizer.cls_token,
-        hidden_size=128
-    )
-
-    mobilebert_model = MobileBertForMaskedLM(config=mobilebert_config)
+    # mobilebert_model = ConvBertForMaskedLM(config=mobilebert_config)
+    # convbert_model = ConvBertForMaskedLM.from_pretrained('/mnt/twitchat/models/convbert-small-hf')
+    training_args.resume_from_checkpoint = True if training_args.resume_from_checkpoint == "1" else False
+    convbert_model = ConvBertForMaskedLM.from_pretrained(training_args.output_dir if training_args.resume_from_checkpoint else model_args.model_name_or_path)
 
     data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm_probability=0.15)
 
     trainer = Trainer(
-        model=mobilebert_model,
+        model=convbert_model,
         args=training_args,
         train_dataset=ds_data["train"],
         eval_dataset=ds_data["test"],
@@ -258,7 +275,7 @@ def train_mlm(ds_data: Dataset, tokenizer: PreTrainedTokenizerFast, training_arg
 
     if training_args.do_train:
         try:
-            trainer.train(training_args.resume_from_checkpoint)
+            trainer.train(training_args.output_dir if training_args.resume_from_checkpoint else None)
         except KeyboardInterrupt:
             logger.info("KeyboardInterrup: saving model anyway")
 

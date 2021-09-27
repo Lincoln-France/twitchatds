@@ -33,6 +33,14 @@ class DatasetArguments:
     )
 
 
+@dataclass
+class ModelArguments:
+
+    model_name_or_path: str = field(
+        metadata={"help": "Path to pretrained model or model identifier from huggingface.co/models"}
+    )
+
+
 class FileCallback(TrainerCallback):
     """ Quick callback to write in file """
     def __init__(self, log_path: str):

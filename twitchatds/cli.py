@@ -161,16 +161,16 @@ def train_mlm_task(args):
     import transformers
     from datasets import Dataset
     from tokenizers import Tokenizer
-    from twitchatds.hf_utils import DatasetArguments
+    from twitchatds.hf_utils import DatasetArguments, ModelArguments
 
     transformers.logging.disable_default_handler()
-    parser = HfArgumentParser((DatasetArguments, TrainingArguments))
+    parser = HfArgumentParser((ModelArguments, DatasetArguments, TrainingArguments))
     parser.prog = 'twitchatds train_mlm'
     if "--help" in args or "-h" in args:
         parser.print_help()
         return
 
-    dataset_args, training_args = parser.parse_args_into_dataclasses(args)
+    model_args, dataset_args, training_args = parser.parse_args_into_dataclasses(args)
 
     tokenizer = Tokenizer.from_file(dataset_args.tokenizer_file)
     tokenizer.enable_truncation(max_length=dataset_args.max_length)
@@ -197,7 +197,7 @@ def train_mlm_task(args):
     ds_data = ds_data.shuffle(seed=3352)
     ds_data = ds_data.train_test_split(test_size=0.2, seed=9873)
 
-    trainer = train_mlm(ds_data, fast_tokenizer, training_args)
+    trainer = train_mlm(ds_data, fast_tokenizer, model_args, training_args)
 
     return trainer
 

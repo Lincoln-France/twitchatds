@@ -137,9 +137,10 @@ convert_convbert:
 # old
 train_mlm:
 	twitchatds train_mlm \
+		--model_name_or_path /mnt/twitchat/models/convbert-small-hf \
 		--data_file data/raw/jeanmassietaccropolis.pkl \
-		--tokenizer_file models/tokenizers/jeanmassietaccropolis.json \
-		--output_dir models/mobilebert/mlm/ \
+		--tokenizer_file models/tokenizers/all_streamers.json \
+		--output_dir models/mlm/convbert-small \
 		--num_train_epochs 2 \
 		--per_device_train_batch_size 16 \
 		--evaluation_strategy steps \
@@ -152,15 +153,15 @@ train_mlm:
 		--log_level debug \
 		--time_window_freq 10s \
 		--max_length 512\
-		--do_train 
+		--do_train \
+		--resume_from_checkpoint 1
 
 train_mlm_gpu:
 	twitchatds train_mlm \
-		--data_file ~/cloudfiles/code/Users/assets/data/raw/jeanmassietaccropolis.pkl \
-		--tokenizer ~/cloudfiles/code/Users/assets/models/tokenizers/jeanmassietaccropolis.json \
-		--output ~/cloudfiles/code/Users/assets/models/mobilebert/mlm \
-		--resume_from_checkpoint ~/cloudfiles/code/Users/assets/models/mobilebert/mlm \
-		--num_train_epochs 20 \
+		--data_file ~/cloudfiles/code/Users/assets/data/raw/zerator_squeezie_samueletienne_ponce_mistermv_jeanmassietaccropolis_domingo_blitzstream_antoinedaniellive.pkl \
+		--tokenizer ~/cloudfiles/code/Users/assets/models/tokenizers/all_streamers.json \
+		--output ~/cloudfiles/code/Users/assets/models/convbert-small-hf-mlm/ \
+		--num_train_epochs 1 \
 		--per_device_train_batch_size 16 \
 		--evaluation_strategy steps \
 		--eval_steps 500 \
