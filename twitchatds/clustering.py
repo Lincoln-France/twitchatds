@@ -9,7 +9,6 @@ from sentence_transformers import SentenceTransformer, models
 from transformers import MobileBertModel, PreTrainedTokenizerFast
 
 
-
 class TwitchatEmbedding:
     def __init__(self, pd_stats: pd.DataFrame):
         self.pd_stats = pd_stats
@@ -97,6 +96,15 @@ class TwitchatSbertEmbedding(TwitchatEmbedding):
         self.vectors = self.model.encode(self.pd_stats.message_clean.to_list(), batch_size=128, show_progress_bar=True, convert_to_tensor=False)
 
 
+class TwitchatSimCSEEmbedding(TwitchatEmbedding):
+    def __init__(self, pd_stats: pd.DataFrame, model_path_or_name: str):
+        self.model: SentenceTransformer = SentenceTransformer(model_path_or_name)
+        super().__init__(pd_stats)
+
+    def compute_embeddings(self):
+        self.vectors = self.model.encode(self.pd_stats.message_clean.to_list(), batch_size=128, show_progress_bar=True, convert_to_tensor=False)
+
+
 class TwitchatPoolingEmbedding(TwitchatEmbedding):
 
     def __init__(self, pd_stats: pd.DataFrame, tokenizer_path: str, model_path: str):
@@ -118,7 +126,7 @@ class TwitchatPoolingEmbedding(TwitchatEmbedding):
 
     @staticmethod
     def mean_pooling(model_output, attention_mask):
-        token_embeddings = model_output[0] #First element of model_output contains all token embeddings
+        token_embeddings = model_output[0] # First element of model_output contains all token embeddings
         input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
         sum_embeddings = torch.sum(token_embeddings * input_mask_expanded, 1)
         sum_mask = torch.clamp(input_mask_expanded.sum(1), min=1e-9)

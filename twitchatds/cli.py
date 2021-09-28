@@ -9,7 +9,8 @@ import logging.config
 import pandas as pd
 from twitchatds import (prepare_data, prepare_data_for_tokenization,
                         prepare_data_for_electra_training,
-                        prepare_data_for_mlm, train_tokenizer,
+                        prepare_data_for_mlm, prepare_data_for_sbert,
+                        train_tokenizer, train_simcse,
                         build_special_tokens, train_mlm)
 
 logger = logging.getLogger(__name__)
@@ -96,6 +97,17 @@ def main():
 
     parser_train_mlm = subparser.add_parser('train_mlm', add_help=False)
     parser_train_mlm.set_defaults(func=train_mlm_task)
+
+    parser_train_simcse = subparser.add_parser('train_simcse')
+    parser_train_simcse.add_argument('-f', '--in-file', type=str, required=True)
+    parser_train_simcse.add_argument('-m', '--model-name-or-path', type=str, required=True)
+    parser_train_simcse.add_argument('-d', '--out-directory', type=str, required=True)
+    parser_train_simcse.add_argument('--batch-size', type=int, required=True, default=32)
+    parser_train_simcse.add_argument('--num-train-epochs', type=int, required=True, default=1)
+    parser_train_simcse.add_argument('--n-sample', type=int, default=1000000)
+    parser_train_simcse.add_argument('--mention-filter', type=int, default=3)
+    parser_train_simcse.add_argument('--count-url-filter', type=int, default=3)
+    parser_train_simcse.set_defaults(func=train_simcse_task)
 
     args, argv = parser.parse_known_args()
     if args.task in ['train_mlm']:
@@ -200,6 +212,25 @@ def train_mlm_task(args):
     trainer = train_mlm(ds_data, fast_tokenizer, model_args, training_args)
 
     return trainer
+
+
+def train_simcse_task(in_file: str, model_name_or_path: str, out_directory: str, batch_size: int, num_train_epochs: int, n_sample: int, mention_filter: int, count_url_filter: int):
+    pd_data = prepare_data_for_sbert(
+        pd_data=pd.read_pickle(in_file),
+        n_sample=n_sample,
+        mention_filter=mention_filter,
+        count_url_filter=count_url_filter
+    )
+
+    model = train_simcse(
+        pd_data['message_clean'].tolist(),
+        model_name_or_path=model_name_or_path,
+        out_directory=out_directory,
+        num_train_epochs=num_train_epochs,
+        batch_size=batch_size
+    )
+
+    return model
 
 
 if __name__ == "__main__":

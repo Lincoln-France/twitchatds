@@ -1,7 +1,13 @@
 name: twitchat-ds
+channels:
+  - conda-forge
 dependencies:
   - python==3.9
   - pip==21.2.4
+  - hdbscan
+  - umap-learn
+  - sentence-transformers==2.0.0
+  - tokenizers==0.10.3
   - pip:
     - -r requirements/dev.txt
     - -e .

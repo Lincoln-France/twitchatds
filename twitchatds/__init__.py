@@ -4,18 +4,17 @@ import io
 import re
 import glob
 import logging
+import math
 from typing import List
 from pathlib import Path
 from itertools import chain
-from datasets.features import encode_nested_example
 import transformers
-from transformers.tokenization_utils import PreTrainedTokenizer
 from transformers.training_args import TrainingArguments
 from transformers.utils.dummy_tokenizers_objects import PreTrainedTokenizerFast
 from transformers import (ConvBertConfig, ConvBertForMaskedLM,
                           DataCollatorForLanguageModeling, Trainer,
                           PrinterCallback)
-from twitchatds.hf_utils import DatasetArguments, FileCallback, ModelArguments
+from twitchatds.hf_utils import FileCallback, ModelArguments
 import twitch
 import tcd
 from tcd.settings import Settings
@@ -26,6 +25,11 @@ from tokenizers.implementations import SentencePieceUnigramTokenizer
 from tokenizers.processors import TemplateProcessing
 
 from datasets import Dataset
+
+from sentence_transformers import SentenceTransformer, LoggingHandler, InputExample
+from sentence_transformers import models, util, datasets, evaluation, losses
+from torch.utils.data import DataLoader
+
 
 __author__ = """Lincoln"""
 __email__ = 'francois.vieille@mel.lincoln.fr'
@@ -217,6 +221,15 @@ def prepare_data_for_electra_training(pd_data: pd.DataFrame, max_length: int = 5
     return pd_data
 
 
+def prepare_data_for_sbert(pd_data: pd.DataFrame, n_sample: int = 1000000, mention_filter: int = 3, count_url_filter: int = 3):
+    pd_data = pd_data[pd_data.count_mention <= mention_filter]
+    pd_data = pd_data[pd_data.count_url <= count_url_filter]
+    pd_data = pd_data.sample(n=n_sample, random_state=21635)
+    pd_data['message_clean'] = pd_data.message.apply(replace_mention).apply(replace_url)
+
+    return pd_data
+
+
 def tokens_by_channel(pd_stats: pd.DataFrame):
     return pd_stats[['channel', 'input_ids', 'tokens']].explode(['input_ids', 'tokens']).groupby(['channel', 'input_ids', 'tokens']).size().to_frame('size').reset_index().sort_values('size', ascending=False)
 
@@ -286,3 +299,31 @@ def train_mlm(ds_data: Dataset, tokenizer: PreTrainedTokenizerFast, model_args: 
             trainer.save_state()
 
     return trainer
+
+
+def train_simcse(train_sentences: List[str], model_name_or_path: str, out_directory: str, num_train_epochs: int = 1, batch_size: int = 32):
+
+    word_embedding_model = models.Transformer(model_name_or_path)
+    pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension(), 'cls')
+    model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
+
+    train_data = [InputExample(texts=[s, s]) for s in train_sentences]
+    train_dataloader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
+
+    train_loss = losses.MultipleNegativesRankingLoss(model)
+
+    warmup_steps = math.ceil(len(train_dataloader) * num_train_epochs * 0.1)
+    try:
+        model.fit(
+            train_objectives=[(train_dataloader, train_loss)],
+            epochs=1,
+            show_progress_bar=True,
+            warmup_steps=warmup_steps,
+            scheduler='WarmupLinear'
+        )
+    except KeyboardInterrupt:
+        logger.info("KeyboardInterrup: saving model anyway")
+
+    model.save(out_directory)
+
+    return model

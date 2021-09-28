@@ -180,3 +180,21 @@ train_mlm_gpu:
 		--time_window_freq 10s \
 		--max_length 512 \
 		--do_train
+
+train_simcse:
+	twitchatds train_simcse \
+		--in-file /mnt/twitchat/data/raw/zerator_squeezie_samueletienne_ponce_mistermv_jeanmassietaccropolis_domingo_blitzstream_antoinedaniellive.pkl \
+		--model-name-or-path /mnt/twitchat/models/convbert-small-hf \
+		--out-directory /mnt/twitchat/models/convbert-small-simcse \
+		--batch-size 128 \
+		--n-sample 1000 \
+		--num-train-epochs 1
+
+train_simcse_gpu:
+	twitchatds train_simcse \
+		--in-file ~/cloudfiles/code/Users/assets/data/raw/zerator_squeezie_samueletienne_ponce_mistermv_jeanmassietaccropolis_domingo_blitzstream_antoinedaniellive.pkl \
+		--model-name-or-path ~/cloudfiles/code/Users/assets/models/convbert-small-hf \
+		--out-directory ~/cloudfiles/code/Users/assets/models/convbert-small-simcse \
+		--batch-size 128 \
+		--n-sample 1000000 \
+		--num-train-epochs 1
