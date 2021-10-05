@@ -316,10 +316,11 @@ def train_simcse(train_sentences: List[str], model_name_or_path: str, out_direct
     try:
         model.fit(
             train_objectives=[(train_dataloader, train_loss)],
-            epochs=1,
+            epochs=num_train_epochs,
             show_progress_bar=True,
             warmup_steps=warmup_steps,
-            scheduler='WarmupLinear'
+            scheduler='WarmupLinear',
+            use_amp=True
         )
     except KeyboardInterrupt:
         logger.info("KeyboardInterrup: saving model anyway")

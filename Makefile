@@ -195,6 +195,6 @@ train_simcse_gpu:
 		--in-file ~/cloudfiles/code/Users/assets/data/raw/zerator_squeezie_samueletienne_ponce_mistermv_jeanmassietaccropolis_domingo_blitzstream_antoinedaniellive.pkl \
 		--model-name-or-path ~/cloudfiles/code/Users/assets/models/convbert-small-hf \
 		--out-directory ~/cloudfiles/code/Users/assets/models/convbert-small-simcse \
-		--batch-size 128 \
-		--n-sample 1000000 \
-		--num-train-epochs 1
+		--batch-size 32 \
+		--n-sample 500000 \
+		--num-train-epochs 3

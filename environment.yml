@@ -1,5 +1,6 @@
 name: twitchat-ds
 channels:
+  - pytorch
   - conda-forge
 dependencies:
   - python==3.9
@@ -8,6 +9,10 @@ dependencies:
   - umap-learn
   - sentence-transformers==2.0.0
   - tokenizers==0.10.3
+  - pytorch
+  - torchvision
+  - torchaudio
+  - cudatoolkit=10.2
   - pip:
     - -r requirements/dev.txt
     - -e .
