@@ -24,6 +24,7 @@ class TwitchatClustering:
     def __init__(self, embedding: TwitchatEmbedding):
         self.embedding = embedding
         self.clusters_labels: Optional[pd.Series] = None
+        self.clustering_model = None
 
     def compute_labels(self):
         raise NotImplementedError
@@ -43,7 +44,7 @@ class TwitchatClustering:
 
     def _add_clusters_to_df(self, clusters_labels: Optional[pd.Series] = None):
         if isinstance(clusters_labels, pd.Series):
-            self.cluster_labels = clusters_labels
+            self.clusters_labels = clusters_labels
         self.embedding.pd_stats['labels'] = self.clusters_labels
 
     def plot_labels_over_time(self):
@@ -54,9 +55,9 @@ class TwitchatClustering:
         tmp['labels_x'] = tmp['labels']
         tmp['alpha'] = 0.8
         tmp['size'] = 1
-        tmp.loc[~tmp.labels.isin(labels_), 'labels_x'] = 0
-        tmp.loc[tmp.labels_x == 0, 'alpha'] = 0.4
-        tmp.loc[tmp.labels_x == 0, 'size'] = 0.5
+        tmp.loc[~tmp.labels.isin(labels_), 'labels_x'] = -2
+        tmp.loc[tmp.labels_x == -2, 'alpha'] = 0.4
+        tmp.loc[tmp.labels_x == -2, 'size'] = 0.5
         return ggplot(tmp, aes('x', 'y', color='factor(labels_x)', alpha='alpha', size='size')) + geom_point() + scale_alpha(guide=False) + scale_size(guide=False)
 
     def plot_labels_x_overt_time(self, labels_: List[int]):
@@ -69,6 +70,10 @@ class TwitchatClustering:
 
     def count_clusters(self):
         return self.embedding.pd_stats.labels.nunique()
+
+    def count_message_without_cluster(self):
+        pd_desc = self.describe_clusters()
+        return pd_desc[pd_desc.labels_ == -1]['count_messages_count'].tolist()
 
     def describe_clusters(self):
         pd_desc = self.embedding.pd_stats.groupby('labels').agg({
@@ -97,6 +102,7 @@ class TwitchatRepresentation:
         self.embedding = embedding
         self.has_labels: bool = has_labels
         self.pd_coords: pd.DataFrame
+        self.representation_model = None
 
     def compute_coords(self):
         raise NotImplementedError
@@ -179,7 +185,8 @@ class TwitchatUmapRepresentation(TwitchatRepresentation):
         umap_kwargs.setdefault('n_components', 2)
         umap_kwargs.setdefault('min_dist', 0.05)
         umap_kwargs.setdefault('metric', 'cosine')
-        umap_data = umap.UMAP(**umap_kwargs).fit_transform(self.embedding.vectors)
+        self.representation_model = umap.UMAP(**umap_kwargs)
+        umap_data = self.representation_model.fit_transform(self.embedding.vectors)
         self.pd_coords = pd.DataFrame(umap_data, columns=['x', 'y'])
         self._add_coords_to_df()
 
@@ -199,7 +206,8 @@ class TwitchatUmapRepresentationWithTime(TwitchatRepresentation):
             umap_kwargs.setdefault('metric', 'cosine')
         embedding_vectors = self.embedding.vectors[:, :self.embedding.dimension]
         datetime_vectors = self.embedding.vectors[:, self.embedding.dimension:]
-        umap_data_step_1 = umap.UMAP(**umap_1_kwargs).fit_transform(embedding_vectors)
+        self.representation_model = umap.UMAP(**umap_1_kwargs)
+        umap_data_step_1 = self.representation_model.fit_transform(embedding_vectors)
         self.vectors_after_umap_1 = umap_data_step_1
         self.vectors_before_umap_2 = np.concatenate((self.vectors_after_umap_1, datetime_vectors), axis=1)
         umap_data_step_2 = umap.UMAP(**umap_2_kwargs).fit_transform(self.vectors_before_umap_2)
@@ -221,7 +229,8 @@ class TwitchatUmapClustering(TwitchatClustering, TwitchatUmapRepresentationWithT
         # umap_embeddings = self.embedding.pd_stats[['x', 'y']].to_numpy()
         umap_embeddings = self.vectors_before_umap_2
         # umap_embeddings = self.vectors_after_umap_1
-        cluster = hdbscan.HDBSCAN(min_cluster_size=3, min_samples=2, cluster_selection_epsilon=0.5,
+        cluster = hdbscan.HDBSCAN(min_cluster_size=5, min_samples=1, cluster_selection_epsilon=0.2,
                                   metric='euclidean', cluster_selection_method='eom').fit(umap_embeddings)
         self.clusters_labels = pd.Series(cluster.labels_)
+        self.model = cluster
         self._add_clusters_to_df()
