@@ -78,7 +78,11 @@ L'ensemble des clusters [ici](./assets/scale_600/print_clusters.txt) en texte.
 
 3. Le script `scripts/backseat_chart_over_time.py` retourne un graphique en barre avec les sujets plus discutés sur une fenêtre temporelle. Par exemple entre 19h30 et 20h00 :
 
+<div style="background-color:white">
+
 ![1930_2000](./assets/scale_600/scale_600_1930_2000.png)
+
+<div>
 
 Et la version vidéo: https://youtu.be/EcjvlE9aTls
 
