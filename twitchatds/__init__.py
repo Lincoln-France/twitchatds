@@ -11,25 +11,16 @@ from itertools import chain
 import transformers
 from transformers.training_args import TrainingArguments
 from transformers.utils.dummy_tokenizers_objects import PreTrainedTokenizerFast
-from transformers import (ConvBertConfig, ConvBertForMaskedLM,
-                          DataCollatorForLanguageModeling, Trainer,
-                          PrinterCallback)
 from twitchatds.hf_utils import FileCallback, ModelArguments
 import twitch
 import tcd
 from tcd.settings import Settings
-
 import pandas as pd
 from tokenizers import Tokenizer
 from tokenizers.implementations import SentencePieceUnigramTokenizer
 from tokenizers.processors import TemplateProcessing
 
 from datasets import Dataset
-
-from sentence_transformers import SentenceTransformer, LoggingHandler, InputExample
-from sentence_transformers import models, util, datasets, evaluation, losses
-from torch.utils.data import DataLoader
-
 
 __author__ = """Lincoln"""
 __email__ = 'francois.vieille@mel.lincoln.fr'
@@ -44,8 +35,6 @@ BROADCASTER_ID = {'blitzstream': 49632767, 'jeanmassietaccropolis': 117011503}
 _REGEX_MENTION = '@\S+' # noqa
 _REGEX_URL = '(http|ftp|https):\/\/([\w\-_]+(?:(?:\.[\w\-_]+)+))([\w\-\.,@?^=%&:/~\+#]*[\w\-\@?^=%&/~\+#])?' # noqa
 Settings(str(Path.home()) + '/.config/tcd/settings.json', reference_filepath=f'{os.path.dirname(os.path.abspath(tcd.__file__))}/settings.reference.json')
-
-# to do: class data
 
 
 def global_emotes() -> List:
@@ -267,7 +256,9 @@ def train_tokenizer(pd_data: pd.DataFrame, vocab_size: int, special_tokens: List
 
 
 def train_mlm(ds_data: Dataset, tokenizer: PreTrainedTokenizerFast, model_args: ModelArguments, training_args: TrainingArguments) -> transformers.Trainer:
-
+    from transformers import (ConvBertForMaskedLM,
+                              DataCollatorForLanguageModeling, Trainer,
+                              PrinterCallback)
     # mobilebert_model = ConvBertForMaskedLM(config=mobilebert_config)
     # convbert_model = ConvBertForMaskedLM.from_pretrained('/mnt/twitchat/models/convbert-small-hf')
     training_args.resume_from_checkpoint = True if training_args.resume_from_checkpoint == "1" else False
@@ -302,6 +293,9 @@ def train_mlm(ds_data: Dataset, tokenizer: PreTrainedTokenizerFast, model_args: 
 
 
 def train_simcse(train_sentences: List[str], model_name_or_path: str, out_directory: str, num_train_epochs: int = 1, batch_size: int = 32):
+    from sentence_transformers import SentenceTransformer, InputExample
+    from sentence_transformers import models, losses
+    from torch.utils.data import DataLoader
 
     word_embedding_model = models.Transformer(model_name_or_path)
     pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension(), 'cls')
@@ -328,3 +322,18 @@ def train_simcse(train_sentences: List[str], model_name_or_path: str, out_direct
     model.save(out_directory)
 
     return model
+
+
+def get_backseat(pd_streams: pd.DataFrame, date: str, tokenizer: Tokenizer) -> pd.DataFrame:
+    one_stream = pd_streams[(pd_streams.channel.isin(['jeanmassietaccropolis', 'jeanmassiet'])) & (pd_streams.published_datetime >= '%s 19:00' % date) & (pd_streams.published_datetime <= '%s 23:00' % date)]
+    one_stream = one_stream[one_stream.username != "moobot"]
+    one_stream['message'] = one_stream.message.apply(lambda x: replace_mention(x, replace='').strip())
+    one_stream = one_stream.sort_values('published_datetime')
+
+    one_stream = prepare_data_for_stats(one_stream.reset_index(), tokenizer)
+
+    return one_stream
+
+
+FIXED_GLOBAL_EMOTES = ["WheelDark", "WheelLight", "Jebasted", "PogBones", "ItsHappening", "PoroSad", "KEKHeim", "CaitlynS", "HarleyWink", "WhySoSerious", "DarkKnight", "Gimme5", "FamilyMan", "RyuChamp", "HungryPaimon", "TransgenderPride", "PansexualPride", "NonbinaryPride", "LesbianPride", "IntersexPride", "GenderFluidPride", "GayPride", "BisexualPride", "AsexualPride", "NewRecord", "PogChamp", "GlitchNRG", "GlitchLit", "StinkyGlitch", "GlitchCat", "FootGoal", "FootYellow", "FootBall", "BlackLivesMatter", "ExtraLife", "VirtualHug", "R-)", "R)", ";-p", ";p", ";-P", ";P", ":-p", ":p", ":-P", ":P", ";-)", ";)", ":-\\\\", ":\\\\", ":-/", ":/", "<3", ":-o", ":o", ":-O", ":O", "8-)", "B-)", "B)", "o.o", "o_o", "o.O", "o_O", "O.O", "O_O", "O.o", "O_o", ":-Z", ":Z", ":-z", ":z", ":-|", ":|", ">(", ":-D", ":D", ":-(", ":(", ":-)", "BOP", "SingsNote", "SingsMic", "TwitchSings", "SoonerLater", "HolidayTree", "HolidaySanta", "HolidayPresent", "HolidayLog", "HolidayCookie", "GunRun", "PixelBob", "FBPenalty", "FBChallenge", "FBCatch", "FBBlock", "FBSpiral", "FBPass", "FBRun", "MaxLOL", "TwitchRPG", "PinkMercy", "MercyWing2", "MercyWing1", "PartyHat", "EarthDay", "TombRaid", "PopCorn", "FBtouchdown", "TPFufun", "TwitchVotes", "DarkMode", "HSWP", "HSCheers", "PowerUpL", "PowerUpR", "LUL", "EntropyWins", "TPcrunchyroll", "TwitchUnity", "Squid4", "Squid3", "Squid2", "Squid1", "CrreamAwk", "CarlSmile", "TwitchLit", "TehePelo", "TearGlove", "SabaPing", "PunOko", "KonCha", "Kappu", "InuyoFace", "BigPhish", "BegWan", "ThankEgg", "MorphinTime", "TheIlluminati", "TBAngel", "MVGame", "NinjaGrumpy", "PartyTime", "RlyTho", "UWot", "YouDontSay", "KAPOW", "ItsBoshyTime", "CoolStoryBob", "TriHard", "SuperVinlin", "FreakinStinkin", "Poooound", "CurseLit", "BatChest", "BrainSlug", "PrimeMe", "StrawBeary", "RaccAttack", "UncleNox", "WTRuck", "TooSpicy", "Jebaited", "DogFace", "BlargNaut", "TakeNRG", "GivePLZ", "imGlitch", "pastaThat", "copyThis", "UnSane", "DatSheffy", "TheTarFu", "PicoMause", "TinyFace", "DxCat", "RuleFive", "VoteNay", "VoteYea", "PJSugar", "DoritosChip", "OpieOP", "FutureMan", "ChefFrank", "StinkyCheese", "NomNom", "SmoocherZ", "cmonBruh", "KappaWealth", "MikeHogu", "VoHiYo", "KomodoHype", "SeriousSloth", "OSFrog", "OhMyDog", "KappaClaus", "KappaRoss", "MingLee", "SeemsGood", "twitchRaid", "bleedPurple", "duDudu", "riPepperonis", "NotLikeThis", "DendiFace", "CoolCat", "KappaPride", "ShadyLulu", "ArgieB8", "CorgiDerp", "PraiseIt", "TTours", "mcaT", "NotATK", "HeyGuys", "Mau5", "PRChase", "WutFace", "BuddhaBar", "PermaSmug", "panicBasket", "BabyRage", "HassaanChop", "TheThing", "EleGiggle", "RitzMitz", "YouWHY", "PipeHype", "BrokeBack", "ANELE", "PanicVis", "GrammarKing", "PeoplesChamp", "SoBayed", "BigBrother", "Keepo", "Kippa", "RalpherZ", "TF2John", "ThunBeast", "WholeWheat", "DAESuppy", "FailFish", "HotPokket", "4Head", "ResidentSleeper", "FUNgineer", "PMSTwin", "ShazBotstix", "BibleThump", "AsianGlow", "DBstyle", "BloodTrail", "OneHand", "FrankerZ", "SMOrc", "ArsonNoSexy", "PunchTrees", "SSSsss", "Kreygasm", "KevinTurtle", "PJSalt", "SwiftRage", "DansGame", "GingerPower", "BCWarrior", "MrDestructoid", "JonCarnage", "Kappa", "RedCoat", "TheRinger", "StoneLightning", "OptimizePrime", "JKanStyle", "R)", ";P", ":P", ";)", ":/", "<3", ":O", "B)", "O_o", ":|", ">(", ":D", ":(", ":)"]
+FIXED_JEANMASSIET_EMOTES = ["massietInfochat", "massietJEAN", "massietMassiet", "massietROUGE", "massietCOOKIE", "massietBoomer", "massietClap", "massietArgent", "massiet20", "massietGG", "massietMoskau", "massietWHAT", "massietFukonklur", "massietBLEU", "massietCoeur", "massietOOF", "massietDab", "massietHmm", "massietDrop", "massietFake", "massietOrder", "massietCHUPA", "massietChaise", "massietOLD", "massietBonjour"]

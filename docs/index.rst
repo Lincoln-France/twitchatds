@@ -9,9 +9,7 @@ Welcome to twitchat-ds's documentation!
    installation
    usage
    modules
-   CONTRIBUTING
    AUTHORS
-   HISTORY
 
 Indices and tables
 ==================

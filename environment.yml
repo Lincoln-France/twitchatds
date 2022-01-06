@@ -7,12 +7,13 @@ dependencies:
   - pip==21.2.4
   - hdbscan
   - umap-learn
-  - sentence-transformers==2.1.0
+  - sentence-transformers==2.0.0
   - tokenizers==0.10.3
   - pytorch
   - torchvision
   - torchaudio
   - cudatoolkit=10.2
+  - libgcc
   - pip:
     - -r requirements/dev.txt
     - -e .

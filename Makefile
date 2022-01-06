@@ -64,7 +64,7 @@ coverage: ## check code coverage quickly with the default Python
 docs: ## generate Sphinx HTML documentation, including API docs
 	rm -f docs/twitchatds.rst
 	rm -f docs/modules.rst
-	rm docs/*.md
+	rm -f docs/*.md
 	cp *.md docs
 	sphinx-apidoc -o docs/ twitchatds
 	$(MAKE) -C docs clean
@@ -110,7 +110,7 @@ export_env:
 
 prepare_data:
 	twitchatds data \
-		--csv-path /media/data/twitchat-data \
+		--csv-path /media/data/twitchat-data-train \
 		--channel zerator squeezie samueletienne ponce mistermv jeanmassietaccropolis domingo blitzstream antoinedaniellive \
 		--out-file /media/data/Projets/twitchat-ds/data/raw/zerator_squeezie_samueletienne_ponce_mistermv_jeanmassietaccropolis_domingo_blitzstream_antoinedaniellive.pkl
 
@@ -198,3 +198,9 @@ train_simcse_gpu:
 		--batch-size 32 \
 		--n-sample 500000 \
 		--num-train-epochs 3
+
+prepare_data_valid:
+	twitchatds data \
+		--csv-path /mnt/twitchat/twitchat-data-valid \
+		--channel zerator squeezie samueletienne ponce mistermv jeanmassiet domingo blitzstream antoinedaniellive doigby etoiles \
+		--out-file /mnt/twitchat/data/raw/valid_zerator_squeezie_samueletienne_ponce_mistermv_jeanmassiet_domingo_blitzstream_antoinedaniellive_doigby_etoiles.pkl
