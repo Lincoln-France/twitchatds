@@ -169,7 +169,7 @@ def main(tokenizer_file, scale, debut_stream_str, fin_stream_str, clustering_dir
         fig = plt.figure(figsize=(10, 10), dpi=144, tight_layout=True)
         plt.barh(stream_windows_stats.best_textual_description, stream_windows_stats.message_count,
                  height=0.5, color=stream_windows_stats.color)
-        plt.legend(handles=patches, loc=1)
+        plt.legend(handles=patches, loc=1, facecolor='white')
 
         fig.savefig(os.path.join(save_directory, f'scale_{scale}_{outfile_name}.png'))
 
@@ -181,10 +181,10 @@ if __name__ == '__main__':
     scale = 600
     window_time_sec = scale
     top_n_ploted = 10
-    debut_stream_str = '2021-11-04 19:10'
-    fin_stream_str = '2021-11-04 22:00'
-    chart_race = True
-    # exclude = ['LUL', 'Quizz', 'Commandes', 'Emotes']
-    exclude = ['LUL', 'Commandes', 'Emotes']
+    debut_stream_str = '2021-11-04 21:50'
+    fin_stream_str = '2021-11-04 22:10'
+    chart_race = False
+    exclude = ['LUL', 'Quizz', 'Commandes', 'Emotes']
+    # exclude = ['LUL', 'Commandes', 'Emotes']
 
     main(tokenizer_file, scale, debut_stream_str, fin_stream_str, clustering_directory, window_time_sec, top_n_ploted, exclude, chart_race)
