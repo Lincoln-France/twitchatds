@@ -57,15 +57,15 @@ Sur la période du 12/03/2021 au 22/07/2021. La totalité des messages comptent 
 
 ## Modèles 
 
-_(à publier sur HF)_
-
-* 2021twitchfr-conv-bert-small
-* 2021twitchfr-conv-bert-small-mlm
-* 2021twitchfr-conv-bert-small-mlm-simcse
+* [2021twitchfr-conv-bert-small](https://huggingface.co/lincoln/2021twitchfr-conv-bert-small)
+* [2021twitchfr-conv-bert-small-mlm](https://huggingface.co/lincoln/2021twitchfr-conv-bert-small-mlm)
+* [2021twitchfr-conv-bert-small-mlm-simcse](https://huggingface.co/lincoln/2021twitchfr-conv-bert-small-mlm-simcse)
 
 ## Application
 
-Application sur l'émission "Backseat" de Jean Massiet du 04/11/2021. Nous nous sommes approprié la méthodologie [BERTopic](https://github.com/MaartenGr/BERTopic) pour intégrer une dimension temporelle. 
+Application sur l'émission "Backseat" de Jean Massiet du 04/11/2021. Nous nous sommes approprié la méthodologie [BERTopic](https://github.com/MaartenGr/BERTopic) pour intégrer une dimension temporelle: i.e. le nombre de seconde écoulée depuis le début du stream.
+
+![approche_bertopic_lincoln](assets/approche_lincoln_topic_clustering_twitch.jpg)
 
 1. Le script `scripts/backseat_representation.py` permet de représenter les messages à l'aide de UMAP:
 ![scale 600](./assets/umap_matrix_scale_600.png)
