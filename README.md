@@ -41,7 +41,7 @@ L'objectif de l'expérimentation est sur deux plans :
 
 ## Données
 
-| Streamer                                      | Nbr de messages | Categories notables en 2021\*      |
+| Streamer                                      | Nbr de messages | Categories notables en 2021        |
 | --------------------------------------------- | --------------- | ---------------------------------- |
 | Ponce                                         | 2 604 935       | Chatting/Mario Kart/FIFA           |
 | Domingo                           | 1 209 703       | Chatting/talk-shows/FM2O21         |

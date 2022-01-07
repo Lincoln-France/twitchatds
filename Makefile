@@ -199,6 +199,15 @@ train_simcse_gpu:
 		--n-sample 500000 \
 		--num-train-epochs 3
 
+train_mlm_simcse_24epochs_gpu:
+	twitchatds train_simcse \
+		--in-file ~/cloudfiles/code/Users/assets/data/raw/zerator_squeezie_samueletienne_ponce_mistermv_jeanmassietaccropolis_domingo_blitzstream_antoinedaniellive.pkl \
+		--model-name-or-path ~/cloudfiles/code/Users/assets/models/convbert-small-hf-mlm \
+		--out-directory ~/cloudfiles/code/Users/assets/models/convbert-small-mlm-simcse-24e \
+		--batch-size 32 \
+		--n-sample 500000 \
+		--num-train-epochs 24
+
 prepare_data_valid:
 	twitchatds data \
 		--csv-path /mnt/twitchat/twitchat-data-valid \
